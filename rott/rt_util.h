@@ -34,11 +34,21 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "develop.h"
 
+#include "SDL.h"
+
 extern  int    egacolor[16];
 extern  byte   *  origpal;
 extern  int      _argc;
 extern  char **  _argv;
 
+extern SDL_Surface *sdl_surface;
+extern SDL_Surface *unstretch_sdl_surface;
+#if SDL_VERSION_ATLEAST(2,0,0)
+extern SDL_Texture* sdl_texture;
+extern SDL_Renderer* sdl_renderer;
+extern SDL_Window* sdl_window;
+extern SDL_Surface *rgbasurf;
+#endif
 void  markgetch( void );
 boolean StringsNotEqual (char * s1, char * s2, int length);
 void  GetPalette(char * pal);
@@ -81,6 +91,7 @@ int   Find_3D_Distance(int ix, int iy, int iz);
 void  SetPalette ( char * pal );
 void  SetaPalette ( byte * pal );
 void  FindEGAColors ( void );
+void  VL_Blit ( void );
 void  VL_FillPalette (int red, int green, int blue);
 void  VL_SetColor  (int color, int red, int green, int blue);
 void  VL_GetColor  (int color, int *red, int *green, int *blue);

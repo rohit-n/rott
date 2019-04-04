@@ -29,6 +29,22 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #if USE_SDL
 #include "SDL.h"
+
+#if SDL_VERSION_ATLEAST(2,0,0)
+#define SDLK_KP0 SDLK_KP_0
+#define SDLK_KP1 SDLK_KP_1
+#define SDLK_KP2 SDLK_KP_2
+#define SDLK_KP3 SDLK_KP_3
+#define SDLK_KP4 SDLK_KP_4
+#define SDLK_KP5 SDLK_KP_5
+#define SDLK_KP6 SDLK_KP_6
+#define SDLK_KP7 SDLK_KP_7
+#define SDLK_KP8 SDLK_KP_8
+#define SDLK_KP9 SDLK_KP_9
+#define SDLK_SCROLLOCK SDLK_SCROLLLOCK
+#define SDLK_NUMLOCK SDLK_NUMLOCKCLEAR
+#endif
+
 #endif
 
 #include "rt_main.h"
@@ -103,7 +119,6 @@ static int sdl_total_sticks = 0;
 static word *sdl_stick_button_state = NULL;
 static word sdl_sticks_joybits = 0;
 static int sdl_mouse_grabbed = 0;
-static unsigned int scancodes[SDLK_LAST];
 extern boolean sdl_fullscreen;
 #endif
 
@@ -177,6 +192,7 @@ static char *ParmStrings[] = {"nojoys","nomouse","spaceball","cyberman","assassi
 
 #if USE_SDL
 #define sdldebug printf
+int get_sdl_scancode(Sint32 sym);
 
 static int sdl_mouse_button_filter(SDL_Event const *event)
 {
@@ -269,6 +285,7 @@ static int sdl_mouse_motion_filter(SDL_Event const *event)
  *                  surface's current flags are used.
  *  @return non-zero on success, zero on failure.
  */
+#if !SDL_VERSION_ATLEAST(2,0,0)
 static int attempt_fullscreen_toggle(SDL_Surface **surface, Uint32 *flags)
 {
     long framesize = 0;
@@ -409,7 +426,7 @@ static int attempt_fullscreen_toggle(SDL_Surface **surface, Uint32 *flags)
 
     return(1);
 } /* attempt_fullscreen_toggle */
-
+#endif
 
     /*
      * The windib driver can't alert us to the keypad enter key, which
@@ -430,7 +447,7 @@ static int handle_keypad_enter_hack(const SDL_Event *event)
             if (event->key.keysym.mod & KMOD_SHIFT)
             {
                 kp_enter_hack = 1;
-                retval = scancodes[SDLK_KP_ENTER];
+                retval = get_sdl_scancode(SDLK_KP_ENTER);
             } /* if */
         } /* if */
 
@@ -439,7 +456,7 @@ static int handle_keypad_enter_hack(const SDL_Event *event)
             if (kp_enter_hack)
             {
                 kp_enter_hack = 0;
-                retval = scancodes[SDLK_KP_ENTER];
+                retval = get_sdl_scancode(SDLK_KP_ENTER);
             } /* if */
         } /* if */
     } /* if */
@@ -453,7 +470,9 @@ static int sdl_key_filter(const SDL_Event *event)
 	int k;
     int keyon;
     int strippedkey;
+#if !SDL_VERSION_ATLEAST(2,0,0)
     SDL_GrabMode grab_mode = SDL_GRAB_OFF;
+#endif
     int extended;
 
     if ( (event->key.keysym.sym == SDLK_g) &&
@@ -463,9 +482,13 @@ static int sdl_key_filter(const SDL_Event *event)
       if (!sdl_fullscreen)
       {
         sdl_mouse_grabbed = ((sdl_mouse_grabbed) ? 0 : 1);
+#if !SDL_VERSION_ATLEAST(2,0,0)
         if (sdl_mouse_grabbed)
             grab_mode = SDL_GRAB_ON;
         SDL_WM_GrabInput(grab_mode);
+#else
+		SDL_SetRelativeMouseMode(sdl_mouse_grabbed ? SDL_TRUE : SDL_FALSE);
+#endif
       }
       return(0);
     } /* if */
@@ -475,8 +498,13 @@ static int sdl_key_filter(const SDL_Event *event)
               (event->key.state == SDL_PRESSED) &&
               (event->key.keysym.mod & KMOD_ALT) )
     {
+#if !SDL_VERSION_ATLEAST(2,0,0)
         if (SDL_WM_ToggleFullScreen(SDL_GetVideoSurface()))
             sdl_fullscreen ^= 1;
+#else
+		SDL_SetWindowFullscreen(sdl_window, sdl_fullscreen ? 0 : SDL_WINDOW_FULLSCREEN_DESKTOP);
+		sdl_fullscreen ^= 1;
+#endif
         return(0);
     } /* if */
 
@@ -491,7 +519,7 @@ static int sdl_key_filter(const SDL_Event *event)
     k = handle_keypad_enter_hack(event);
     if (!k)
     {
-        k = scancodes[event->key.keysym.sym];
+        k = get_sdl_scancode(event->key.keysym.sym);
         if (!k)   /* No DOS equivalent defined. */
             return(0);
     } /* if */
@@ -516,7 +544,7 @@ static int sdl_key_filter(const SDL_Event *event)
         {
             KeyboardQueue[ Keytail ] = extended;
             Keytail = ( Keytail + 1 )&( KEYQMAX - 1 );
-            k = scancodes[event->key.keysym.sym] & 0xFF;
+            k = get_sdl_scancode(event->key.keysym.sym) & 0xFF;
             if (event->key.state == SDL_RELEASED)
                 k += 128;  /* +128 signifies that the key is released in DOS. */
         }
@@ -1000,7 +1028,219 @@ void INL_ShutJoy (word joy)
 #endif
 }
 
+int get_sdl_scancode(Sint32 sym)
+{
+	/*
+  all keys are now mapped to the wolf3d-style names,
+  except where no such name is available.
+ */
 
+	switch (sym)
+	{
+		case SDLK_ESCAPE:
+			return sc_Escape;
+		case SDLK_1:
+			return sc_1;
+		case SDLK_2:
+			return sc_2;
+		case SDLK_3:
+			return sc_3;
+		case SDLK_4:
+			return sc_4;
+		case SDLK_5:
+			return sc_5;
+		case SDLK_6:
+			return sc_6;
+		case SDLK_7:
+			return sc_7;
+		case SDLK_8:
+			return sc_8;
+		case SDLK_9:
+			return sc_9;
+		case SDLK_0:
+			return sc_0;
+		case SDLK_EQUALS:
+			return sc_Equals;
+		case SDLK_BACKSPACE:
+			return sc_BackSpace;
+		case SDLK_TAB:
+			return sc_Tab;
+		case SDLK_q:
+			return sc_Q;
+		case SDLK_w:
+			return sc_W;
+		case SDLK_e:
+			return sc_E;
+		case SDLK_r:
+			return sc_R;
+		case SDLK_t:
+			return sc_T;
+		case SDLK_y:
+			return sc_Y;
+		case SDLK_u:
+			return sc_U;
+		case SDLK_i:
+			return sc_I;
+		case SDLK_o:
+			return sc_O;
+		case SDLK_p:
+			return sc_P;
+		case SDLK_LEFTBRACKET:
+			return sc_OpenBracket;
+		case SDLK_RIGHTBRACKET:
+			return sc_CloseBracket;
+		case SDLK_RETURN:
+			return sc_Return;
+		case SDLK_LCTRL:
+			return sc_Control;
+		case SDLK_a:
+			return sc_A;
+		case SDLK_s:
+			return sc_S;
+		case SDLK_d:
+			return sc_D;
+		case SDLK_f:
+			return sc_F;
+		case SDLK_g:
+			return sc_G;
+		case SDLK_h:
+			return sc_H;
+		case SDLK_j:
+			return sc_J;
+		case SDLK_k:
+			return sc_K;
+		case SDLK_l:
+			return sc_L;
+		case SDLK_SEMICOLON:
+			return 0x27;
+		case SDLK_QUOTE:
+			return 0x28;
+		case SDLK_BACKQUOTE:
+			return 0x29;
+		/* left shift, but ROTT maps it to right shift in isr.c */
+		case SDLK_LSHIFT:
+			return sc_RShift; /* sc_LShift */
+		case SDLK_BACKSLASH:
+			return 0x2B;
+		 /* Accept the German eszett as a backslash key */
+		//case SDLK_WORLD_63:
+		//	return 0x2B;
+		case SDLK_z:
+			return sc_Z;
+		case SDLK_x:
+			return sc_X;
+		case SDLK_c:
+			return sc_C;
+		case SDLK_v:
+			return sc_V;
+		case SDLK_b:
+			return sc_B;
+		case SDLK_n:
+			return sc_N;
+		case SDLK_m:
+			return sc_M;
+		case SDLK_COMMA:
+			return sc_Comma;
+		case SDLK_PERIOD:
+			return sc_Period;
+		case SDLK_SLASH:
+			return 0x35;
+		case SDLK_RSHIFT:
+			return sc_RShift;
+		case SDLK_KP_DIVIDE:
+			return 0x35;
+		case SDLK_LALT:
+			return sc_Alt;
+		case SDLK_RALT:
+			return sc_Alt;
+		case SDLK_MODE:
+			return sc_Alt;
+		case SDLK_RCTRL:
+			return sc_Control;
+		case SDLK_SPACE:
+			return sc_Space;
+		case SDLK_CAPSLOCK:
+			return sc_CapsLock;
+		case SDLK_F1:
+			return sc_F1;
+		case SDLK_F2:
+			return sc_F2;
+		case SDLK_F3:
+			return sc_F3;
+		case SDLK_F4:
+			return sc_F4;
+		case SDLK_F5:
+			return sc_F5;
+		case SDLK_F6:
+			return sc_F6;
+		case SDLK_F7:
+			return sc_F7;
+		case SDLK_F8:
+			return sc_F8;
+		case SDLK_F9:
+			return sc_F9;
+		case SDLK_F10:
+			return sc_F10;
+		case SDLK_F11:
+			return sc_F11;
+		case SDLK_F12:
+			return sc_F12;
+		case SDLK_NUMLOCK:
+			return 0x45;
+		case SDLK_SCROLLOCK:
+			return 0x46;
+		case SDLK_MINUS:
+			return sc_Minus;
+		case SDLK_KP7:
+			return sc_Home;
+		case SDLK_KP8:
+			return sc_UpArrow;
+		case SDLK_KP9:
+			return sc_PgUp;
+		case SDLK_HOME:
+			return sc_Home;
+		case SDLK_UP:
+			return sc_UpArrow;
+		case SDLK_PAGEUP:
+			return sc_PgUp;
+		case SDLK_KP_MINUS:
+			return sc_Minus;
+		case SDLK_KP4:
+			return sc_LeftArrow;
+		case SDLK_KP5:
+			return 0x4C;
+		case SDLK_KP6:
+			return sc_RightArrow;
+		case SDLK_LEFT:
+			return sc_LeftArrow;
+		case SDLK_RIGHT:
+			return sc_RightArrow;
+		case SDLK_KP_PLUS:
+			return sc_Plus;
+		case SDLK_KP1:
+			return sc_End;
+		case SDLK_KP2:
+			return sc_DownArrow;
+		case SDLK_KP3:
+			return sc_PgDn;
+		case SDLK_END:
+			return sc_End;
+		case SDLK_DOWN:
+			return sc_DownArrow;
+		case SDLK_PAGEDOWN:
+			return sc_PgDn;
+		case SDLK_DELETE:
+			return sc_Delete;
+		case SDLK_KP0:
+			return sc_Insert;
+		case SDLK_INSERT:
+			return sc_Insert;
+		case SDLK_KP_ENTER:
+			return sc_Return;
+		default:
+			return 0;
+	}
+}
 
 //******************************************************************************
 //
@@ -1030,129 +1270,6 @@ void IN_Startup (void)
 sdl_mouse_grabbed = 1;
 #endif
 
-/*
-  all keys are now mapped to the wolf3d-style names,
-  except where no such name is available.
- */
-    memset(scancodes, '\0', sizeof (scancodes));
-    scancodes[SDLK_ESCAPE]          = sc_Escape;
-    scancodes[SDLK_1]               = sc_1;
-    scancodes[SDLK_2]               = sc_2;
-    scancodes[SDLK_3]               = sc_3;
-    scancodes[SDLK_4]               = sc_4;
-    scancodes[SDLK_5]               = sc_5;
-    scancodes[SDLK_6]               = sc_6;
-    scancodes[SDLK_7]               = sc_7;
-    scancodes[SDLK_8]               = sc_8;
-    scancodes[SDLK_9]               = sc_9;
-    scancodes[SDLK_0]               = sc_0;
-    
-    //scancodes[SDLK_EQUALS]          = 0x4E;
-    scancodes[SDLK_EQUALS]          = sc_Equals;
-    
-    scancodes[SDLK_BACKSPACE]       = sc_BackSpace;
-    scancodes[SDLK_TAB]             = sc_Tab;
-    scancodes[SDLK_q]               = sc_Q;
-    scancodes[SDLK_w]               = sc_W;
-    scancodes[SDLK_e]               = sc_E;
-    scancodes[SDLK_r]               = sc_R;
-    scancodes[SDLK_t]               = sc_T;
-    scancodes[SDLK_y]               = sc_Y;
-    scancodes[SDLK_u]               = sc_U;
-    scancodes[SDLK_i]               = sc_I;
-    scancodes[SDLK_o]               = sc_O;
-    scancodes[SDLK_p]               = sc_P;
-    scancodes[SDLK_LEFTBRACKET]     = sc_OpenBracket;
-    scancodes[SDLK_RIGHTBRACKET]    = sc_CloseBracket;
-    scancodes[SDLK_RETURN]          = sc_Return;
-    scancodes[SDLK_LCTRL]           = sc_Control;
-    scancodes[SDLK_a]               = sc_A;
-    scancodes[SDLK_s]               = sc_S;
-    scancodes[SDLK_d]               = sc_D;
-    scancodes[SDLK_f]               = sc_F;
-    scancodes[SDLK_g]               = sc_G;
-    scancodes[SDLK_h]               = sc_H;
-    scancodes[SDLK_j]               = sc_J;
-    scancodes[SDLK_k]               = sc_K;
-    scancodes[SDLK_l]               = sc_L;
-    scancodes[SDLK_SEMICOLON]       = 0x27;
-    scancodes[SDLK_QUOTE]           = 0x28;
-    scancodes[SDLK_BACKQUOTE]       = 0x29;
-    
-    /* left shift, but ROTT maps it to right shift in isr.c */
-    scancodes[SDLK_LSHIFT]          = sc_RShift; /* sc_LShift */
-    
-    scancodes[SDLK_BACKSLASH]       = 0x2B;
-    /* Accept the German eszett as a backslash key */
-    scancodes[SDLK_WORLD_63]        = 0x2B;
-    scancodes[SDLK_z]               = sc_Z;
-    scancodes[SDLK_x]               = sc_X;
-    scancodes[SDLK_c]               = sc_C;
-    scancodes[SDLK_v]               = sc_V;
-    scancodes[SDLK_b]               = sc_B;
-    scancodes[SDLK_n]               = sc_N;
-    scancodes[SDLK_m]               = sc_M;
-    scancodes[SDLK_COMMA]           = sc_Comma;
-    scancodes[SDLK_PERIOD]          = sc_Period;
-    scancodes[SDLK_SLASH]           = 0x35;
-    scancodes[SDLK_RSHIFT]          = sc_RShift;
-    scancodes[SDLK_KP_DIVIDE]       = 0x35;
-    
-    /* 0x37 is printscreen */
-    //scancodes[SDLK_KP_MULTIPLY]     = 0x37;
-    
-    scancodes[SDLK_LALT]            = sc_Alt;
-    scancodes[SDLK_RALT]            = sc_Alt;
-    scancodes[SDLK_MODE]            = sc_Alt;
-    scancodes[SDLK_RCTRL]           = sc_Control;
-    scancodes[SDLK_SPACE]           = sc_Space;
-    scancodes[SDLK_CAPSLOCK]        = sc_CapsLock;
-    scancodes[SDLK_F1]              = sc_F1;
-    scancodes[SDLK_F2]              = sc_F2;
-    scancodes[SDLK_F3]              = sc_F3;
-    scancodes[SDLK_F4]              = sc_F4;
-    scancodes[SDLK_F5]              = sc_F5;
-    scancodes[SDLK_F6]              = sc_F6;
-    scancodes[SDLK_F7]              = sc_F7;
-    scancodes[SDLK_F8]              = sc_F8;
-    scancodes[SDLK_F9]              = sc_F9;
-    scancodes[SDLK_F10]             = sc_F10;
-    scancodes[SDLK_F11]             = sc_F11;
-    scancodes[SDLK_F12]             = sc_F12;
-    scancodes[SDLK_NUMLOCK]         = 0x45;
-    scancodes[SDLK_SCROLLOCK]       = 0x46;
-    
-    //scancodes[SDLK_MINUS]           = 0x4A;
-    scancodes[SDLK_MINUS]           = sc_Minus;
-    
-    scancodes[SDLK_KP7]             = sc_Home;
-    scancodes[SDLK_KP8]             = sc_UpArrow;
-    scancodes[SDLK_KP9]             = sc_PgUp;
-    scancodes[SDLK_HOME]            = sc_Home;
-    scancodes[SDLK_UP]              = sc_UpArrow;
-    scancodes[SDLK_PAGEUP]          = sc_PgUp;
-    // Make this a normal minus, for viewport changing
-    //scancodes[SDLK_KP_MINUS]        = 0xE04A;
-    scancodes[SDLK_KP_MINUS]        = sc_Minus;
-    scancodes[SDLK_KP4]             = sc_LeftArrow;
-    scancodes[SDLK_KP5]             = 0x4C;
-    scancodes[SDLK_KP6]             = sc_RightArrow;
-    scancodes[SDLK_LEFT]            = sc_LeftArrow;
-    scancodes[SDLK_RIGHT]           = sc_RightArrow;
-    
-    //scancodes[SDLK_KP_PLUS]         = 0x4E;
-    scancodes[SDLK_KP_PLUS]         = sc_Plus;
-    
-    scancodes[SDLK_KP1]             = sc_End;
-    scancodes[SDLK_KP2]             = sc_DownArrow;
-    scancodes[SDLK_KP3]             = sc_PgDn;
-    scancodes[SDLK_END]             = sc_End;
-    scancodes[SDLK_DOWN]            = sc_DownArrow;
-    scancodes[SDLK_PAGEDOWN]        = sc_PgDn;
-    scancodes[SDLK_DELETE]          = sc_Delete;
-    scancodes[SDLK_KP0]             = sc_Insert;
-    scancodes[SDLK_INSERT]          = sc_Insert;
-    scancodes[SDLK_KP_ENTER]        = sc_Return;
 #endif
 
    checkjoys        = true;

@@ -5388,11 +5388,17 @@ void CP_ExtOptionsMenu (void)
          case 2: iG_aimCross   ^= 1; DrawExtOptionsButtons (); break;
          case 3: usejump       ^= 1; DrawExtOptionsButtons (); break;
          case 4:
+#if !SDL_VERSION_ATLEAST(2,0,0)
             if (SDL_WM_ToggleFullScreen(SDL_GetVideoSurface()))
             {
                sdl_fullscreen ^= 1;
                DrawExtOptionsButtons ();
             }
+#else
+			SDL_SetWindowFullscreen(sdl_window, sdl_fullscreen ? 0 : SDL_WINDOW_FULLSCREEN_DESKTOP);
+			sdl_fullscreen ^= 1;
+			DrawExtOptionsButtons ();
+#endif
             break;
       }
 

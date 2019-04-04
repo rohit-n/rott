@@ -1249,7 +1249,7 @@ void GetaPalette (byte *palette)
 		palette[i] = inp (PEL_DATA)<<2;
 #else
 	int i;
-	SDL_Palette *pal = SDL_GetVideoSurface()->format->palette;
+	SDL_Palette *pal = sdl_surface->format->palette;
 	
 	for (i = 0; i < 256; i++) {
 		palette[0] = pal->colors[i].r;
@@ -1290,7 +1290,12 @@ void SetaPalette (byte *pal)
 	   cmap[i].b = pal[i*3+2];
    }
 
-   SDL_SetColors (SDL_GetVideoSurface (), cmap, 0, 256);
+#if !SDL_VERSION_ATLEAST(2,0,0)
+    SDL_SetColors (SDL_GetVideoSurface (), cmap, 0, 256);
+#else
+	SDL_SetPaletteColors(sdl_surface->format->palette, cmap, 0, 256);
+	VL_Blit();
+#endif
 #endif
 }
 
@@ -1304,7 +1309,7 @@ void GetPalette(char * palette)
      *(palette+(unsigned char)i)=inp(0x3c9)<<2;
 #else
 	int i;
-	SDL_Palette *pal = SDL_GetVideoSurface()->format->palette;
+	SDL_Palette *pal = sdl_surface->format->palette;
 	
 	for (i = 0; i < 256; i++) {
 		palette[0] = pal->colors[i].r;
@@ -1373,6 +1378,20 @@ int US_CheckParm (char *parm, char **strings)
 =============================================================================
 */
 
+#if SDL_VERSION_ATLEAST(2,0,0)
+void  VL_Blit ( void )
+{
+	SDL_Rect blit_rect;
+	blit_rect.x = blit_rect.y = 0;
+	blit_rect.w = rgbasurf->w;
+	blit_rect.h = rgbasurf->h;
+	SDL_BlitSurface(sdl_surface, &blit_rect, rgbasurf, &blit_rect);
+	SDL_UpdateTexture(sdl_texture, NULL, rgbasurf->pixels, rgbasurf->pitch);
+	SDL_RenderClear(sdl_renderer);
+	SDL_RenderCopy(sdl_renderer, sdl_texture, NULL, NULL);
+	SDL_RenderPresent(sdl_renderer);
+}
+#endif
 
 /*
 =================
@@ -1405,7 +1424,12 @@ void VL_FillPalette (int red, int green, int blue)
            cmap[i].b = blue << 2;
    }
 
-   SDL_SetColors (SDL_GetVideoSurface (), cmap, 0, 256);
+#if !SDL_VERSION_ATLEAST(2,0,0)
+    SDL_SetColors (SDL_GetVideoSurface (), cmap, 0, 256);
+#else
+	SDL_SetPaletteColors(sdl_surface->format->palette, cmap, 0, 256);
+	VL_Blit();
+#endif
 #endif
 }
 
@@ -1505,7 +1529,12 @@ void VL_SetPalette (byte *palette)
 	   cmap[i].b = gammatable[(gammaindex<<6)+(*palette++)] << 2;
    }
 
-   SDL_SetColors (SDL_GetVideoSurface (), cmap, 0, 256);
+#if !SDL_VERSION_ATLEAST(2,0,0)
+    SDL_SetColors (SDL_GetVideoSurface (), cmap, 0, 256);
+#else
+	SDL_SetPaletteColors(sdl_surface->format->palette, cmap, 0, 256);
+	VL_Blit();
+#endif
 #endif
 }
 
@@ -1534,7 +1563,7 @@ void VL_GetPalette (byte *palette)
       *palette++ = inp (PEL_DATA);
 #else
 	int i;
-	SDL_Palette *pal = SDL_GetVideoSurface()->format->palette;
+	SDL_Palette *pal = sdl_surface->format->palette;
 	
 	for (i = 0; i < 256; i++) {
 		palette[0] = pal->colors[i].r >> 2;

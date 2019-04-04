@@ -419,12 +419,21 @@ void XFlipPage ( void )
 =
 ====================
 */
-static SDL_Surface *sdl_surface = NULL;
-static SDL_Surface *unstretch_sdl_surface = NULL;
+
+SDL_Surface *sdl_surface = NULL;
+SDL_Surface *unstretch_sdl_surface = NULL;
+#if SDL_VERSION_ATLEAST(2,0,0)
+SDL_Texture* sdl_texture;
+SDL_Renderer* sdl_renderer = NULL;
+SDL_Window* sdl_window = NULL;
+SDL_Surface *rgbasurf;
+#endif
 
 void GraphicsMode ( void )
 {
     Uint32 flags = 0;
+	unsigned int rmask, gmask, bmask, amask;
+	int unused_bpp;
 
 	if (SDL_InitSubSystem (SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0)
 	{
@@ -433,16 +442,44 @@ void GraphicsMode ( void )
 
     #if defined(PLATFORM_WIN32) || defined(PLATFORM_MACOSX)
         // FIXME: remove this.  --ryan.
-        flags = SDL_FULLSCREEN;
-        SDL_WM_GrabInput(SDL_GRAB_ON);
+        // flags = SDL_FULLSCREEN;
+        // SDL_WM_GrabInput(SDL_GRAB_ON);
     #endif
 
+#if !SDL_VERSION_ATLEAST(2,0,0)
     SDL_WM_SetCaption ("Rise of the Triad", "ROTT");
+#else
+	SDL_SetWindowTitle(sdl_window, "Rise of the Triad");
+#endif
     SDL_ShowCursor (0);
 //    sdl_surface = SDL_SetVideoMode (320, 200, 8, flags);
+
+#if !SDL_VERSION_ATLEAST(2,0,0)
     if (sdl_fullscreen)
         flags = SDL_FULLSCREEN;
-    sdl_surface = SDL_SetVideoMode (iGLOBAL_SCREENWIDTH, iGLOBAL_SCREENHEIGHT, 8, flags);    
+#else
+	if (sdl_fullscreen)
+        flags = SDL_WINDOW_FULLSCREEN_DESKTOP;
+#endif
+
+#if !SDL_VERSION_ATLEAST(2,0,0)
+	sdl_surface = SDL_SetVideoMode (iGLOBAL_SCREENWIDTH, iGLOBAL_SCREENHEIGHT, 8, flags);
+#else
+	sdl_surface = SDL_CreateRGBSurface(0, iGLOBAL_SCREENWIDTH, iGLOBAL_SCREENHEIGHT, 8, 0, 0, 0, 0);
+	if (sdl_window)
+	{
+		SDL_DestroyWindow(sdl_window);
+	}
+	SDL_CreateWindowAndRenderer(iGLOBAL_SCREENWIDTH, iGLOBAL_SCREENHEIGHT, flags, &sdl_window, &sdl_renderer);
+	SDL_SetRenderDrawColor(sdl_renderer, 0, 0, 0, 255);
+	sdl_texture = SDL_CreateTexture(sdl_renderer, SDL_PIXELFORMAT_ARGB8888,
+		SDL_TEXTUREACCESS_STREAMING, iGLOBAL_SCREENWIDTH, iGLOBAL_SCREENHEIGHT);
+	SDL_PixelFormatEnumToMasks(SDL_GetWindowPixelFormat(sdl_window), &unused_bpp,
+		&rmask, &gmask, &bmask, &amask);
+	rgbasurf = SDL_CreateRGBSurface(0, iGLOBAL_SCREENWIDTH, iGLOBAL_SCREENHEIGHT, 32, rmask, gmask, bmask, amask);
+	SDL_RenderSetLogicalSize(sdl_renderer, iGLOBAL_SCREENWIDTH, iGLOBAL_SCREENHEIGHT);
+
+#endif
 	if (sdl_surface == NULL)
 	{
 		Error ("Could not set video mode\n");
@@ -688,13 +725,16 @@ void VL_DePlaneVGA (void)
 
 void VH_UpdateScreen (void)
 { 	
-
 	if (StretchScreen){//bna++
 		StretchMemPicture ();
 	}else{
 		DrawCenterAim ();
 	}
+#if !SDL_VERSION_ATLEAST(2,0,0)
 	SDL_UpdateRect (SDL_GetVideoSurface (), 0, 0, 0, 0);
+#else
+	VL_Blit();
+#endif
 }
 
 
@@ -727,7 +767,11 @@ void XFlipPage ( void )
 	}else{
 		DrawCenterAim ();
 	}
+#if !SDL_VERSION_ATLEAST(2,0,0)
    SDL_UpdateRect (sdl_surface, 0, 0, 0, 0);
+#else
+	VL_Blit();
+#endif
  
 #endif
 }
