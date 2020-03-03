@@ -118,7 +118,7 @@ static word sdl_mouse_button_mask = 0;
 static int sdl_total_sticks = 0;
 static word *sdl_stick_button_state = NULL;
 static word sdl_sticks_joybits = 0;
-static int sdl_mouse_grabbed = 0;
+static int sdl_mouse_grabbed = 1;
 extern boolean sdl_fullscreen;
 #endif
 
@@ -1263,14 +1263,7 @@ void IN_Startup (void)
    if (IN_Started==true)
       return;
 
-#if USE_SDL
 
-#if PLATFORM_WIN32
-// fixme: remove this.
-sdl_mouse_grabbed = 1;
-#endif
-
-#endif
 
    checkjoys        = true;
    checkmouse       = true;

@@ -448,8 +448,6 @@ void GraphicsMode ( void )
 
 #if !SDL_VERSION_ATLEAST(2,0,0)
     SDL_WM_SetCaption ("Rise of the Triad", "ROTT");
-#else
-	SDL_SetWindowTitle(sdl_window, "Rise of the Triad");
 #endif
     SDL_ShowCursor (0);
 //    sdl_surface = SDL_SetVideoMode (320, 200, 8, flags);
@@ -471,6 +469,9 @@ void GraphicsMode ( void )
 		SDL_DestroyWindow(sdl_window);
 	}
 	SDL_CreateWindowAndRenderer(iGLOBAL_SCREENWIDTH, iGLOBAL_SCREENHEIGHT, flags, &sdl_window, &sdl_renderer);
+#if SDL_VERSION_ATLEAST(2,0,0)
+	SDL_SetWindowTitle(sdl_window, "Rise of the Triad");
+#endif
 	SDL_SetRenderDrawColor(sdl_renderer, 0, 0, 0, 255);
 	sdl_texture = SDL_CreateTexture(sdl_renderer, SDL_PIXELFORMAT_ARGB8888,
 		SDL_TEXTUREACCESS_STREAMING, iGLOBAL_SCREENWIDTH, iGLOBAL_SCREENHEIGHT);
@@ -478,7 +479,7 @@ void GraphicsMode ( void )
 		&rmask, &gmask, &bmask, &amask);
 	rgbasurf = SDL_CreateRGBSurface(0, iGLOBAL_SCREENWIDTH, iGLOBAL_SCREENHEIGHT, 32, rmask, gmask, bmask, amask);
 	SDL_RenderSetLogicalSize(sdl_renderer, iGLOBAL_SCREENWIDTH, iGLOBAL_SCREENHEIGHT);
-
+	SDL_SetRelativeMouseMode(SDL_TRUE);
 #endif
 	if (sdl_surface == NULL)
 	{
